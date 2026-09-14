@@ -54,7 +54,12 @@ CLDR_MANY  : 'many' ;
 CLDR_OTHER : 'other' ;
 
 IDENT  : [a-zA-Z_][a-zA-Z0-9_]* ;
+NUMERO_MALFORMADO : [0-9]+ '.' ;
 NUMERO : [0-9]+ ('.' [0-9]+)? ;
+
+// Texto dos ramos de selecao. Fica depois das regras estruturais para que
+// chaves, colchetes, '$' e '#' continuem sendo tokens de controle.
+TEXTO_B : ~[{}\u005B\u005D#$@\\ \t\r\n]+ ;
 
 ESPACO_B : [ \t\r\n]+ -> skip ;
 

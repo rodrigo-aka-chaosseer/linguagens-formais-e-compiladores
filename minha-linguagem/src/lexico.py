@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "gerado"))
 
 from antlr4 import FileStream, CommonTokenStream
 from antlr4.error.ErrorListener import ErrorListener
-from LocaScriptLexer import LocaScriptLexer
+from LocaScript import LocaScript as LocaScriptLexer  # type: ignore[reportMissingImports]
 
 
 class ColetorDeErros(ErrorListener):
@@ -59,6 +59,10 @@ def tokenizar(caminho):
         nome = nome_do_token(lexer, token.type)
         print(f"{nome} '{token.text}' linha {token.line}")
         total += 1
+        if nome == "NUMERO_MALFORMADO":
+            coletor.erros.append(
+                (token.line, token.column, f"numero malformado: '{token.text}'")
+            )
 
     # Se o arquivo terminar sem o lexer voltar ao modo padrao, um bloco
     # "{ ... }" ou uma tag "< ... >" ficou sem fechar.
