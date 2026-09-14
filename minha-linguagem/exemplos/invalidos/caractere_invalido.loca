@@ -1,0 +1,2 @@
+## '@' nao existe no alfabeto da LocaScript dentro de um bloco.
+Ola { $nome @ }!

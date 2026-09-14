@@ -1,0 +1,6 @@
+## Mensagem de saque (loot) ao encontrar moedas.
+Voce encontrou { $quantidade ->
+    [zero]  nenhuma moeda.
+    [one]   1 moeda de ouro.
+    [*]     # moedas de ouro.
+}

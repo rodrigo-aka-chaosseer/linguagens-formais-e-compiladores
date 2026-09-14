@@ -1,0 +1,9 @@
+## Mensagem exibida quando um jogador causa dano em combate.
+<color=yellow>{ $atacante_nome }</> causou { $dano } de dano!
+{ $vitima_genero ->
+    [fem] Ela perdeu
+    [*]   Ele perdeu
+} { $pocoes ->
+    [one]  # poção de vida.
+    [*]    # poções de vida.
+}
