@@ -11,3 +11,6 @@ Criado o repositório no Github, com todos os arquivos do projeto; README ajusta
 
 ## 17/09
 Tentativas de resolver problemas da instalação do ANTLR4, tanto no Windows quanto no Pop!OS. No Pop!OS foi necessário criar um .venv com a ajuda do Copilot
+
+## 14/10
+Adicionados arquivos para implementação do analisador sintático e seus testes
