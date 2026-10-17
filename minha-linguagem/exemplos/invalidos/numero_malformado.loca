@@ -1,2 +1,2 @@
 ## NUMERO exige digito depois do ponto; "3." sozinho nao e valido.
-{ $preco -> [*] custa 3. reais }
+{ $preco | arredondar(3.1} reais 

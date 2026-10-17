@@ -33,7 +33,6 @@ lexer grammar LocaScript;
 COMENT : '##' ~[\r\n]* -> skip ;
 
 // Escapes: transformam um símbolo reservado em texto literal.
-// Novo: '\<' (antes não havia como escrever um '<' literal).
 ESCAPE : '\\' ('{' | '}' | '$' | '#' | '\\' | '<') ;
 
 ABRE_BLOCO  : '{' -> pushMode(DENTRO_BLOCO) ;
@@ -54,16 +53,13 @@ mode DENTRO_BLOCO;
 FECHA_BLOCO      : '}' -> popMode ;
 PREFIXO_VAR      : '$' ;
 PIPE             : '|' ;
+ABRE_PAREN : '(' -> pushMode(DENTRO_ARGS) ;
 
 // '->' troca o modo (não empilha): o '}' que fecha a seleção então
 // desempilha o bloco inteiro de uma vez.
 OPERADOR_SELECAO : '->' -> mode(DENTRO_SELECAO) ;
 
-// Argumentos de formatador: { $valor | moeda(BRL, 2) }
-// Novo: antes "moeda(BRL)" virava um único TEXTO_B.
-ABRE_PAREN  : '(' ;
-FECHA_PAREN : ')' ;
-VIRGULA     : ',' ;
+
 
 IDENT : [a-zA-Z_][a-zA-Z0-9_]* ;
 
@@ -74,6 +70,21 @@ NUMERO_MALFORMADO : [0-9]+ '.' ;
 NUMERO            : [0-9]+ ('.' [0-9]+)? ;
 
 ESPACO_B : [ \t\r\n]+ -> skip ;
+
+// =====================================================================
+// MODO DENTRO_ARGS: argumentos de formatador, "( ... )"
+// =====================================================================
+mode DENTRO_ARGS;
+
+FECHA_PAREN : ')' -> popMode ;
+VIRGULA     : ',' ;
+
+IDENT_ARG             : [a-zA-Z_][a-zA-Z0-9_]* -> type(IDENT) ;
+NUMERO_MALFORMADO_ARG : [0-9]+ '.' -> type(NUMERO_MALFORMADO) ;
+NUMERO_ARG            : [0-9]+ ('.' [0-9]+)? -> type(NUMERO) ;
+
+ESPACO_A : [ \t\r\n]+ -> skip ;
+
 
 // =====================================================================
 // MODO DENTRO_SELECAO: corpo de "{ $var -> [caso] texto ... }"
@@ -141,3 +152,5 @@ VALOR_HEX    : '#' [0-9a-fA-F]+ ;
 TAG_IDENT : [a-zA-Z_][a-zA-Z0-9_]* ;
 
 ESPACO_T : [ \t\r\n]+ -> skip ;
+
+//

@@ -78,8 +78,7 @@ Da resolução mais interna para a mais externa:
 Uma linha iniciada por `##` é um comentário e é totalmente descartada pelo
 analisador léxico. Escolhemos dois caracteres (`##`) e não um só porque um
 único `#` já é o token `VALOR_NUMERICO`, usado dentro de blocos de
-pluralização (`# moedas de ouro`). Ver `DIARIO.md`, entrada de 12/09, para o
-motivo da mudança.
+pluralização (`# moedas de ouro`).
 
 ## 7. Três coisas que a linguagem deliberadamente não faz
 
