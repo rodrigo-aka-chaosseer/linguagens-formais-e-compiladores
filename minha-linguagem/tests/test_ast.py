@@ -5,7 +5,7 @@ ou não os espaços ao redor do corpo do caso ainda é do time.
 """
 from api_parser import parse
 from ast_nos import (
-    Caso, Interpolacao, NumeroPlural, Programa, Selecao, TagUI,
+    Caso, Interpolacao, NumeroPlural, Mensagem, Selecao, TagUI,
     TextoLiteral, TipoTag,
 )
 
@@ -19,8 +19,8 @@ def texto_do_caso(caso: Caso) -> str:
 
 
 # --- texto e interpolação ------------------------------------------------
-def test_programa_vazio():
-    assert parse("") == Programa(itens=[])
+def test_mensagem_vazia():
+    assert parse("") == Mensagem(itens=[])
 
 
 def test_texto_puro():

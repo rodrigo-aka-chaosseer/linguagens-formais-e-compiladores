@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from antlr4 import CommonTokenStream, InputStream, Lexer
 from antlr4.error.ErrorListener import ErrorListener
 
-from ast_nos import Programa
+from ast_nos import Mensagem
 from construtor_ast import ConstrutorAst
 from LocaScript import LocaScript                  # lexer (nome do lexer grammar)
 from LocaScriptParser import LocaScriptParser      # parser gerado
@@ -41,7 +41,7 @@ class _ColetorErros(ErrorListener):
         self.diagnosticos.append(Diagnostico(line, column, msg))
 
 
-def parse(texto: str) -> Programa:
+def parse(texto: str) -> Mensagem:
     coletor = _ColetorErros()
 
     lexer = LocaScript(InputStream(texto))
@@ -60,8 +60,8 @@ def parse(texto: str) -> Programa:
     parser = LocaScriptParser(tokens)
     parser.removeErrorListeners()
     parser.addErrorListener(coletor)
-    arvore = parser.programa()
+    arvore = parser.mensagem()
 
     if coletor.diagnosticos:
         raise ErroSintatico(coletor.diagnosticos)
-    return ConstrutorAst().visit(arvore)
+    return ConstrutorAst(tokens).visit(arvore)

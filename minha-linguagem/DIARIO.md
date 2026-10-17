@@ -18,5 +18,5 @@ Adicionados arquivos para implementação do analisador sintático e seus testes
 # 16/10
 Gramática atualizada com correções para garantir bom funcionamento do analisador lexico e portanto do sintático; .gitignore adicionado para não versionar pasta gerado/
 
-17/10
+# 17/10
 Adicionado parser.g4 e primeiros testes de sintaxe feitos

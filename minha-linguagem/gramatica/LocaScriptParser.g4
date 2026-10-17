@@ -20,7 +20,7 @@ item
 
 // { $nome }   ou   { $valor | moeda(BRL, 2) }
 interpolacao
-    : ABRE_BLOCO PREFIXO_VAR IDENT (PIPE formatador)? FECHA_BLOCO
+    : ABRE_BLOCO PREFIXO_VAR IDENT (PIPE formatador)* FECHA_BLOCO
     ;
 
 formatador : IDENT (ABRE_PAREN argumentos? FECHA_PAREN)? ;

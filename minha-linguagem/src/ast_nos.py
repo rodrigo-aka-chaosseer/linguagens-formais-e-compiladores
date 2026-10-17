@@ -56,7 +56,7 @@ class No:
 
 
 @dataclass
-class Programa(No):
+class Mensagem(No):
     itens: list[No] = field(default_factory=list)
 
 
