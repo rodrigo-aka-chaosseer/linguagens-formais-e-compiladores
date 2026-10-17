@@ -42,17 +42,26 @@ $env:ANTLR4_TOOLS_ANTLR_VERSION = "4.13.2"
 $antlr = Join-Path (python -c "import sysconfig; print(sysconfig.get_path('scripts'))") "antlr4.exe"
 Push-Location gramatica
 & $antlr -Dlanguage=Python3 -visitor -o ..\gerado LocaScript.g4
+& $antlr -Dlanguage=Python3 -visitor -lib ..\gerado -o ..\gerado LocaScriptParser.g4
 Pop-Location
 
 
-# roda o analisador léxico sobre um exemplo
+# roda os analisadores léxico e sintático sobre exemplos
 python src/lexico.py exemplos/ola.loca
+python src/sintatico.py exemplos/dano.loca
 ```
+
+O analisador léxico mostra os tokens em uma tabela com linha, coluna, tipo e
+texto reconhecido. Caracteres especiais, como quebras de linha, aparecem
+escapados; as colunas são contadas a partir de zero.
+O analisador sintático exibe a árvore de regras e tokens com indentação; cada
+folha mostra o texto reconhecido e sua posição no arquivo.
 
 
 Na primeira execução, o `antlr4-tools` pode solicitar a instalação automática
 de um JRE. Responda `yes` quando aparecer essa pergunta. A gramática é um lexer
-ANTLR puro, então a geração cria `gerado/LocaScript.py`.
+ANTLR puro; a segunda gramática gera `gerado/LocaScriptParser.py`, que depende
+dos tokens criados pelo lexer.
 
 
 ### Linux e macOS
@@ -62,7 +71,7 @@ ANTLR puro, então a geração cria `gerado/LocaScript.py`.
 python3 -m pip install antlr4-tools antlr4-python3-runtime
 
 
-# gera o lexer a partir da gramática (pasta gerado/, ignorada pelo Git)
+# gera o lexer e o parser a partir das gramáticas (pasta gerado/, ignorada pelo Git)
 bash gerar.sh
 
 
@@ -83,32 +92,44 @@ Versão do ANTLR usada neste projeto: **4.13.2**.
 ## Em que fase o projeto está
 
 
-**E2 — especificação da linguagem e analisador léxico.** O lexer reconhece
-identificadores, números, texto literal, palavras-chave (categorias plurais
-do CLDR), operadores/símbolos e comentários, e localiza erros léxicos com
-linha e coluna. As próximas fases (E3 — analisador sintático, E4 — análise
-semântica) ainda não foram implementadas.
+**E3 — analisador sintático.** O lexer reconhece identificadores, números,
+texto literal, palavras-chave (categorias plurais do CLDR), operadores/símbolos
+e comentários, e localiza erros léxicos com linha e coluna. A gramática do
+parser e o script `src/sintatico.py` já analisam mensagens, interpolações,
+seleções e tags; a análise semântica (E4) ainda não foi implementada.
 
 
 ## Como rodar os testes
 
 
-Não há suíte automatizada nesta fase; a validação é manual, rodando o
-analisador sobre os exemplos válidos e inválidos:
+Não há suíte automatizada nesta fase; a validação é manual, rodando os
+analisadores sobre os exemplos válidos e inválidos. Execute os comandos a
+partir de `minha-linguagem/`.
 
 
 ```bash
-# execute estes comandos a partir de minha-linguagem/
-# devem tokenizar sem erro
+# análise léxica: estes exemplos devem ser aceitos
 python src/lexico.py exemplos/ola.loca
 python src/lexico.py exemplos/dano.loca
 python src/lexico.py exemplos/pluralizacao.loca
 
 
-# devem reportar erro léxico com linha/coluna
+# análise léxica: estes exemplos devem reportar erro com linha/coluna
 python src/lexico.py exemplos/invalidos/caractere_invalido.loca
 python src/lexico.py exemplos/invalidos/numero_malformado.loca
 python src/lexico.py exemplos/invalidos/tag_sem_fechar.loca
+
+
+# análise sintática: devem aceitar e imprimir a árvore indentada
+python src/sintatico.py exemplos/ola.loca
+python src/sintatico.py exemplos/dano.loca
+python src/sintatico.py exemplos/pluralizacao.loca
+
+
+# análise sintática: devem reportar erro e terminar com código diferente de zero
+python src/sintatico.py exemplos/invalidos/caractere_invalido.loca
+python src/sintatico.py exemplos/invalidos/numero_malformado.loca
+python src/sintatico.py exemplos/invalidos/tag_sem_fechar.loca
 ```
 
 # Especificação Formal da Linguagem LocaScript v1.0

@@ -1,4 +1,4 @@
-## Mensagem exibida quando um jogador causa dano em combate.
+## Exemplo de tag, interpolacao, selecao de genero e pluralizacao em combate.
 <color=yellow>{ $atacante_nome }</> causou { $dano } de dano!
 { $vitima_genero ->
     [fem] Ela perdeu

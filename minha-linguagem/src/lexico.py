@@ -9,7 +9,7 @@ Antes de rodar, gere o lexer com:
 
     bash gerar.sh
 
-Isso cria a pasta gerado/ com LocaScriptLexer.py (não versionada no Git).
+Isso cria a pasta gerado/ com LocaScript.py (não versionada no Git).
 """
 
 import sys
@@ -52,19 +52,44 @@ def tokenizar(caminho):
     stream = CommonTokenStream(lexer)
     stream.fill()
 
-    total = 0
+    linhas = []
     for token in stream.tokens:
         if token.type == -1:  # EOF
             continue
         if token.channel != 0:  # espaços dos ramos (canal HIDDEN)
             continue
         nome = nome_do_token(lexer, token.type)
-        print(f"{nome} '{token.text}' linha {token.line}")
-        total += 1
+        linhas.append(
+            (str(token.line), str(token.column), nome, repr(token.text))
+        )
         if nome == "NUMERO_MALFORMADO":
             coletor.erros.append(
                 (token.line, token.column, f"numero malformado: '{token.text}'")
             )
+
+    cabecalhos = ("LINHA", "COLUNA", "TIPO", "TEXTO")
+    larguras = [len(cabecalho) for cabecalho in cabecalhos]
+    for linha in linhas:
+        for indice, valor in enumerate(linha):
+            larguras[indice] = max(larguras[indice], len(valor))
+
+    print("Posições de coluna começam em 0.")
+    print(
+        "  ".join(
+            cabecalho.ljust(larguras[indice])
+            for indice, cabecalho in enumerate(cabecalhos)
+        )
+    )
+    print("  ".join("-" * largura for largura in larguras))
+    for linha in linhas:
+        print(
+            "  ".join(
+                valor.ljust(larguras[indice])
+                for indice, valor in enumerate(linha)
+            )
+        )
+
+    total = len(linhas)
 
     # Se o arquivo terminar sem o lexer voltar ao modo padrao, um bloco
     # "{ ... }" ou uma tag "< ... >" ficou sem fechar.

@@ -9,8 +9,39 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "gerado"))
 
 from antlr4 import FileStream, CommonTokenStream
 from antlr4.error.ErrorListener import ErrorListener
+from antlr4.tree.Tree import TerminalNode
 from LocaScript import LocaScript as LocaScriptLexer
 from LocaScriptParser import LocaScriptParser
+
+
+def imprimir_arvore(arvore, parser):
+    """Imprime regras e tokens como uma árvore indentada."""
+
+    def rotulo(no):
+        if isinstance(no, TerminalNode):
+            token = no.getSymbol()
+            nome = "EOF" if token.type == -1 else parser.symbolicNames[token.type]
+            return f"{nome} {token.text!r} ({token.line}:{token.column})"
+        return parser.ruleNames[no.getRuleIndex()]
+
+    def visitar(no, prefixo="", ultimo=True, raiz=False):
+        print(
+            rotulo(no)
+            if raiz
+            else prefixo + ("└── " if ultimo else "├── ") + rotulo(no)
+        )
+        filhos = [] if isinstance(no, TerminalNode) else list(no.getChildren())
+        for indice, filho in enumerate(filhos):
+            prefixo_filho = prefixo
+            if not raiz:
+                prefixo_filho += "    " if ultimo else "│   "
+            visitar(
+                filho,
+                prefixo_filho,
+                ultimo=indice == len(filhos) - 1,
+            )
+
+    visitar(arvore, raiz=True)
 
 
 class Coletor(ErrorListener):
@@ -40,7 +71,7 @@ def analisar(caminho):
             print(f"ERRO: linha {linha}, coluna {coluna}: {msg}", file=sys.stderr)
         sys.exit(1)
 
-    print(arvore.toStringTree(recog=parser))
+    imprimir_arvore(arvore, parser)
 
 
 if __name__ == "__main__":
