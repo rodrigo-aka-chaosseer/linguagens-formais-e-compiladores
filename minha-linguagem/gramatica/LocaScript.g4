@@ -1,51 +1,121 @@
 lexer grammar LocaScript;
 
 // ---- LEXER: MAIUSCULAS ----
-// Gramática de lexer da LocaScript v1.0
+// Gramática de lexer da LocaScript v1.1
 // Linguagem de marcação para interpolação, pluralização (CLDR) e
 // flexão de gênero/gramática em textos de jogos.
 //
 // Usa MODOS porque espaço em branco é significativo em texto literal,
 // mas insensível dentro de expressões de controle "{ ... }" e de tags
-// de UI "< ... >" (ver README, seção 1.2). Ver DIARIO.md 12/09.
+// de UI "< ... >" .
+//
+// Pilha de modos (de fora para dentro):
+//
+//   DEFAULT_MODE   texto literal solto
+//     '{'  -> DENTRO_BLOCO     cabeçalho: { $var | formatador(args) ...
+//       '->' troca para DENTRO_SELECAO (mode, sem empilhar)
+//     DENTRO_SELECAO           corpo da seleção: [caso] texto ... }
+//       '['  -> DENTRO_CASO    chave do caso: [one] [fem] [*]
+//       '{'  -> DENTRO_BLOCO   interpolação aninhada dentro de um ramo
+//       '<'  -> DENTRO_TAG     tag de UI dentro de um ramo
+//     '<'  -> DENTRO_TAG       tag de UI: <color=#FF0000> </>
+//
+
 
 // =====================================================================
 // MODO PADRAO: texto literal solto (fora de blocos e tags)
 // =====================================================================
 
-// Comentários: linha iniciada por '##'. Escolhemos dois caracteres, e
-// não um só, porque um único '#' já é o token VALOR_NUMERICO usado
-// dentro de blocos de pluralização ("# moedas de ouro"). A regra de
-// maior correspondência do ANTLR garante que "##..." vire COMENT.
+// Comentários: '##' até o fim da linha (em qualquer ponto da linha).
+// Dois caracteres, e não um só, porque um único '#' já é o token
+// VALOR_NUMERICO usado dentro dos ramos de pluralização.
+// Para escrever "##" literal, use "\#\#".
 COMENT : '##' ~[\r\n]* -> skip ;
 
-ESCAPE : '\\' ('{' | '}' | '$' | '#' | '\\') ;
+// Escapes: transformam um símbolo reservado em texto literal.
+// Novo: '\<' (antes não havia como escrever um '<' literal).
+ESCAPE : '\\' ('{' | '}' | '$' | '#' | '\\' | '<') ;
 
 ABRE_BLOCO  : '{' -> pushMode(DENTRO_BLOCO) ;
 TAG_UI_ABRE : '<' -> pushMode(DENTRO_TAG) ;
 
-// Texto literal: qualquer sequência de caracteres que NÃO seja um dos
-// símbolos reservados que abrem um modo de controle ('{', '<'), o
-// escape ('\') ou o marcador de comentário ('#', que precisa de \# para
-// virar texto). Espaço em branco aqui é mantido (não é ESPACO/skip).
-TEXTO : ~[{<#\\]+ ;
+// Texto literal: tudo que NÃO seja '{', '}', '<', '#' ou '\'.
+// Espaço em branco é mantido.
+// Novo: '}' saiu daqui; um '}' solto agora é erro léxico (antes passava
+// em silêncio como texto). Para um '}' literal, use '\}'.
+TEXTO : ~[{}<#\\]+ ;
 
 // =====================================================================
-// MODO DENTRO_BLOCO: dentro de "{ ... }" (interpolação/seleção)
+// MODO DENTRO_BLOCO: cabeçalho de "{ ... }" (variável, formatador, '->')
+// Espaço em branco é insensível aqui: { $var } == {$var}
 // =====================================================================
 mode DENTRO_BLOCO;
 
 FECHA_BLOCO      : '}' -> popMode ;
 PREFIXO_VAR      : '$' ;
-OPERADOR_SELECAO : '->' ;
-ABRE_CASO        : '[' ;
-FECHA_CASO       : ']' ;
-CASO_PADRAO      : '*' ;
 PIPE             : '|' ;
-VALOR_NUMERICO   : '#' ;
 
-// Palavras-chave: categorias plurais do padrão Unicode CLDR, usadas
-// como chave de caso dentro de uma seleção plural: { $qtd -> [one] ... }
+// '->' troca o modo (não empilha): o '}' que fecha a seleção então
+// desempilha o bloco inteiro de uma vez.
+OPERADOR_SELECAO : '->' -> mode(DENTRO_SELECAO) ;
+
+// Argumentos de formatador: { $valor | moeda(BRL, 2) }
+// Novo: antes "moeda(BRL)" virava um único TEXTO_B.
+ABRE_PAREN  : '(' ;
+FECHA_PAREN : ')' ;
+VIRGULA     : ',' ;
+
+IDENT : [a-zA-Z_][a-zA-Z0-9_]* ;
+
+// NUMERO exige dígito depois do ponto; "3." sozinho é malformado.
+// Números só aparecem como argumento de formatador. Em texto de ramo,
+// "Você tem 5." é texto comum e não gera mais erro.
+NUMERO_MALFORMADO : [0-9]+ '.' ;
+NUMERO            : [0-9]+ ('.' [0-9]+)? ;
+
+ESPACO_B : [ \t\r\n]+ -> skip ;
+
+// =====================================================================
+// MODO DENTRO_SELECAO: corpo de "{ $var -> [caso] texto ... }"
+// Espaço em branco é SIGNIFICATIVO no texto dos ramos: vai para o canal
+// HIDDEN (o parser ignora, mas o texto original pode ser reconstruído).
+// =====================================================================
+mode DENTRO_SELECAO;
+
+ABRE_CASO : '[' -> pushMode(DENTRO_CASO) ;
+
+// Fecha o bloco inteiro (corpo da seleção + cabeçalho que ficou abaixo).
+// O token continua se chamando FECHA_BLOCO para o parser.
+FECHA_BLOCO_SEL : '}' -> type(FECHA_BLOCO), popMode ;
+
+// Interpolação e tag de UI aninhadas dentro de um ramo.
+ABRE_BLOCO_SEL  : '{' -> type(ABRE_BLOCO), pushMode(DENTRO_BLOCO) ;
+TAG_UI_ABRE_SEL : '<' -> type(TAG_UI_ABRE), pushMode(DENTRO_TAG) ;
+
+// Escapes dentro de ramos (inclui '[' e ']' além dos do modo padrão).
+ESCAPE_SEL : '\\' ('{' | '}' | '$' | '#' | '\\' | '<' | '[' | ']')
+             -> type(ESCAPE) ;
+
+// Marcador do valor numérico em pluralização: "# moedas".
+VALOR_NUMERICO : '#' ;
+
+// Texto do ramo: qualquer sequência fora dos símbolos de controle.
+// '(' ')' ',' '.' etc. fazem parte do texto aqui ("O(a) jogador(a)").
+TEXTO_B : ~[{}\u005B\u005D<#$@\\ \t\r\n]+ ;
+
+ESPACO_SEL : [ \t\r\n]+ -> channel(HIDDEN) ;
+
+// =====================================================================
+// MODO DENTRO_CASO: chave de um caso, "[ ... ]"
+// =====================================================================
+mode DENTRO_CASO;
+
+FECHA_CASO  : ']' -> popMode ;
+CASO_PADRAO : '*' ;
+
+// Palavras-chave: categorias plurais do padrão Unicode CLDR.
+// Só são palavras-chave aqui; "one" como nome de variável ($one) ou
+// como palavra solta de um ramo continua sendo identificador/texto.
 CLDR_ZERO  : 'zero' ;
 CLDR_ONE   : 'one' ;
 CLDR_TWO   : 'two' ;
@@ -53,15 +123,10 @@ CLDR_FEW   : 'few' ;
 CLDR_MANY  : 'many' ;
 CLDR_OTHER : 'other' ;
 
-IDENT  : [a-zA-Z_][a-zA-Z0-9_]* ;
-NUMERO_MALFORMADO : [0-9]+ '.' ;
-NUMERO : [0-9]+ ('.' [0-9]+)? ;
+// Chaves de gênero/papel: [masculino] [fem]
+IDENT_CASO : [a-zA-Z_][a-zA-Z0-9_]* -> type(IDENT) ;
 
-// Texto dos ramos de selecao. Fica depois das regras estruturais para que
-// chaves, colchetes, '$' e '#' continuem sendo tokens de controle.
-TEXTO_B : ~[{}\u005B\u005D#$@\\ \t\r\n]+ ;
-
-ESPACO_B : [ \t\r\n]+ -> skip ;
+ESPACO_C : [ \t\r\n]+ -> skip ;
 
 // =====================================================================
 // MODO DENTRO_TAG: dentro de "< ... >" (estilização de interface)

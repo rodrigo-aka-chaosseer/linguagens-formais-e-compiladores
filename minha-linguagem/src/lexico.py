@@ -18,7 +18,7 @@ import os
 # Torna a pasta gerado/ (na raiz do projeto) importável.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "gerado"))
 
-from antlr4 import FileStream, CommonTokenStream
+from antlr4 import FileStream, CommonTokenStream, Token
 from antlr4.error.ErrorListener import ErrorListener
 from LocaScript import LocaScript as LocaScriptLexer  # type: ignore[reportMissingImports]
 
@@ -55,6 +55,8 @@ def tokenizar(caminho):
     total = 0
     for token in stream.tokens:
         if token.type == -1:  # EOF
+            continue
+        if token.channel != 0:  # espaços dos ramos (canal HIDDEN)
             continue
         nome = nome_do_token(lexer, token.type)
         print(f"{nome} '{token.text}' linha {token.line}")
