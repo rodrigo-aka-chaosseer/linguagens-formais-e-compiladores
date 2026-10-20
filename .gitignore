@@ -1,2 +1,4 @@
-minha-linguagem/.venv/
+.venv/
 minha-linguagem/gerado/
+.hypothesis/
+.pytest_cache/

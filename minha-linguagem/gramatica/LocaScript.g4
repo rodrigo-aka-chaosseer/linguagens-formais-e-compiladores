@@ -112,7 +112,7 @@ VALOR_NUMERICO : '#' ;
 
 // Texto do ramo: qualquer sequência fora dos símbolos de controle.
 // '(' ')' ',' '.' etc. fazem parte do texto aqui ("O(a) jogador(a)").
-TEXTO_B : ~[{}\u005B\u005D<#$@\\ \t\r\n]+ ;
+TEXTO_B : ~[{}\u005B\u005D<#\\ \t\r\n]+ ;
 
 ESPACO_SEL : [ \t\r\n]+ -> channel(HIDDEN) ;
 

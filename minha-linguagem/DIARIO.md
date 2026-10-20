@@ -21,3 +21,7 @@
 # 17/10
 - Adicionado parser.g4 e primeiros testes de sintaxe feitos
 - Melhorada a visualização dos analisadores: o léxico agora exibe tokens em uma tabela, e o sintático mostra a árvore indentada.
+
+# 20/10
+- Pequenos ajustes na gramática do léxico, no README e na especificação; 
+- Adição de testes para verificar se a linguagem segue a especificação atual
