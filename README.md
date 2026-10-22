@@ -34,16 +34,8 @@ comandos a partir da raiz deste diretório (`minha-linguagem/`).
 python -m pip install antlr4-tools antlr4-python3-runtime
 
 
-# usa a versão do ANTLR especificada neste projeto
-$env:ANTLR4_TOOLS_ANTLR_VERSION = "4.13.2"
-
-
-# gera o lexer sem depender de o diretório Scripts estar no PATH
-$antlr = Join-Path (python -c "import sysconfig; print(sysconfig.get_path('scripts'))") "antlr4.exe"
-Push-Location gramatica
-& $antlr -Dlanguage=Python3 -visitor -o ..\gerado LocaScript.g4
-& $antlr -Dlanguage=Python3 -visitor -lib ..\gerado -o ..\gerado LocaScriptParser.g4
-Pop-Location
+# gera o lexer e o parser sem precisar do Bash nem de configurar o PATH
+.\gerar.ps1
 
 
 # roda os analisadores léxico e sintático sobre exemplos
@@ -80,10 +72,8 @@ python3 src/lexico.py exemplos/ola.loca
 ```
 
 
-No Git Bash do Windows, use preferencialmente os comandos da seção
-**Windows (PowerShell)**. O script `gerar.sh` só funciona se o executável
-`antlr4` estiver disponível no `PATH` do Git Bash; no PowerShell, use o comando
-explícito mostrado acima.
+No Windows, use o script `gerar.ps1` no PowerShell; `gerar.sh` é destinado a
+Linux e macOS.
 
 
 Versão do ANTLR usada neste projeto: **4.13.2**.

@@ -7,7 +7,8 @@ Uso:
 Depende do código gerado pelo ANTLR a partir de gramatica/LocaScript.g4.
 Antes de rodar, gere o lexer com:
 
-    bash gerar.sh
+    # Windows (PowerShell): .\\gerar.ps1
+    # Linux/macOS: bash gerar.sh
 
 Isso cria a pasta gerado/ com LocaScript.py (não versionada no Git).
 """

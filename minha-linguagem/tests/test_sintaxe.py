@@ -1,4 +1,4 @@
-"""Testes de aceitação e rejeição sintática (PR 1 da Pessoa A)."""
+"""Testes de aceitação e rejeição sintática"""
 import pytest
 
 from api_parser import ErroSintatico, parse

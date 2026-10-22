@@ -1,4 +1,4 @@
-"""Testes de estrutura da AST (PR 1 da Pessoa B).
+"""Testes de estrutura da AST.
 
 Os textos dentro de casos são comparados com .strip(): a decisão de aparar
 ou não os espaços ao redor do corpo do caso ainda é do time.
