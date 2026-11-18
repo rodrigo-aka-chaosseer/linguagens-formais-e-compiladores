@@ -24,6 +24,7 @@ import os
 import sys
 from dataclasses import fields
 from enum import Enum
+from typing import Optional
 
 # Torna a pasta gerado/ importável (mesma convenção de lexico.py/sintatico.py).
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "gerado"))
@@ -31,7 +32,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "gerado"))
 from antlr4 import CommonTokenStream, InputStream  # noqa: E402
 from antlr4.error.ErrorListener import ErrorListener  # noqa: E402
 
-from ast_nos import No  # noqa: E402
+from ast_nos import Mensagem, No  # noqa: E402
 from construtor_ast import ConstrutorAst  # noqa: E402
 from LocaScript import LocaScript  # noqa: E402
 from LocaScriptParser import LocaScriptParser  # noqa: E402
@@ -85,7 +86,7 @@ def _ast_json(no: No) -> dict:
     return saida
 
 
-def _processar(texto: str) -> dict:
+def _processar(texto: str) -> tuple[dict, Optional[Mensagem]]:
     lexico = _Coletor("lexico")
     sintatico = _Coletor("sintatico")
 
@@ -134,6 +135,7 @@ def _processar(texto: str) -> dict:
 
     diagnosticos = lexico.itens + sintaticos
     ast = None
+    mensagem = None
     nomes: dict = {}
 
     if not diagnosticos:
@@ -146,7 +148,7 @@ def _processar(texto: str) -> dict:
         nomes = variaveis(mensagem)
 
     diagnosticos.sort(key=lambda d: (d["linha"], d["coluna"], d["fase"]))
-    return {
+    resultado = {
         "ok": not diagnosticos,
         "diagnosticos": diagnosticos,
         "tokens": tokens,
@@ -155,10 +157,14 @@ def _processar(texto: str) -> dict:
             {"nome": n, "tipo": t.name.lower() if t else None} for n, t in nomes.items()
         ],
     }
+    return resultado, mensagem
 
 
-def processar(texto: str) -> dict:
-    """Ponto de entrada. Nunca levanta por causa do conteúdo do texto."""
+def processar_com_arvore(texto: str) -> tuple[dict, Optional[Mensagem]]:
+    """Como `processar`, mas devolve também a AST (objeto), para o interpretador.
+
+    A AST é None se houve erro léxico ou sintático. Nunca levanta por causa do texto.
+    """
     try:
         return _processar(texto)
     except RecursionError:
@@ -172,4 +178,9 @@ def processar(texto: str) -> dict:
             "tokens": [],
             "ast": None,
             "variaveis": [],
-        }
+        }, None
+
+
+def processar(texto: str) -> dict:
+    """Ponto de entrada para o playground (só dados simples)."""
+    return processar_com_arvore(texto)[0]

@@ -60,15 +60,16 @@ class EspecFormatador:
     obrigatorios: int = 0               # os N primeiros argumentos são obrigatórios
 
 
-def _eh_inteiro(texto: str) -> bool:
-    return re.fullmatch(r"[0-9]+", texto) is not None
+def _eh_casas(texto: str) -> bool:
+    """Inteiro de 0 a 10 (limite para a formatação em tempo de execução)."""
+    return re.fullmatch(r"[0-9]+", texto) is not None and int(texto) <= 10
 
 
 def _eh_codigo_moeda(texto: str) -> bool:
     return re.fullmatch(r"[A-Z]{3}", texto) is not None
 
 
-_CASAS = Argumento("casas", "um inteiro maior ou igual a 0", _eh_inteiro)
+_CASAS = Argumento("casas", "um inteiro de 0 a 10", _eh_casas)
 
 # R15: tabela fixa de formatadores.
 FORMATADORES: dict[str, EspecFormatador] = {
