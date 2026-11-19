@@ -97,39 +97,189 @@ final do comentário continua no texto. Para escrever `##` literal, use `\#\#`.
    `[one]`); não há `&&`, `||` ou comparações como `$dano > 10`.
 
 ---
+## 7. Análise semântica
 
-## Dicionário de contexto
-Contexto utilizado: jogos de RPG *high-fantasy*.
+Depois que o analisador sintático aceita uma mensagem, a análise semântica
+percorre a árvore (AST) e verifica o que a gramática não consegue expressar:
+ramos de seleção, pareamento de tags, valores de tags, formatadores e tipos de
+variáveis. Todo problema é um **erro** (a linguagem não tem avisos). Os erros
+são coletados em uma única passada e reportados juntos, ordenados por posição,
+no formato `linha L, coluna C: mensagem`.
 
-**Magia, Entidades e Artefatos**
+### 7.1 Regras
 
-* **Arcano:** Qualidade mística, pouco compreendida pela sociedade; mágico, misterioso.
-* **Grimório:** Tomo ou livro de feitiços contendo rituais, encantamentos e fórmulas mágicas.
-* **Lich:** Necromante poderoso que renunciou à vida mortal por meio de artes das trevas para se tornar um morto-vivo consciente.
-* **Mana / Éter:** O recurso ou substância vital consumida durante a conjuração de habilidades mágicas.
-* **Runa:** Símbolo místico esculpido em armas, armaduras ou monumentos para conceder propriedades mágicas ou elementais.
-* **Mitril (Mithril):** Metal mítico extremamente leve e reluzente, mas incomparavelmente mais resistente que o aço comum.
+| Regra | Descrição |
+| --- | --- |
+| **R1** | Toda seleção tem **exatamente um** ramo `[*]`, em qualquer posição. |
+| **R2** | Toda tag é aberta com `<nome>` e fechada com `</nome>`; não existe `</>`. A tag aberta por último deve ser fechada primeiro, e o nome do fechamento deve ser o da tag aberta. |
+| **R3** | O marcador `#` só pode aparecer em seleção de pluralização e se refere à seleção **mais interna** que o contém. |
+| **R4** | Uma chave não pode se repetir na mesma seleção (`[one]` duas vezes). |
+| **R5** | Uma seleção não mistura categorias plurais (`zero`, `one`, `two`, `few`, `many`, `other`) com chaves de gênero/papel (`masculino`, `fem`...). |
+| **R6** | `[other]` é uma categoria comum e **não** substitui `[*]`, que continua obrigatório. |
+| **R7** | Ramos vazios são aceitos: `{ $x -> [one] [*] texto }`. |
+| **R8** | Uma seleção só com `[*]` é aceita. |
+| **R9** | Os nomes de tag são livres, exceto `color`, que exige valor (ver 8.3). |
+| **R11** | As chaves de gênero/papel são livres: o contrato é com o código do jogo. |
+| **R13** | A existência de uma variável **não** é verificada: o conjunto de variáveis só é conhecido em tempo de execução. |
+| **R14** | Uma variável tem um único tipo (número ou texto) em toda a mensagem (ver 8.2). |
+| **R15** | Só existem os formatadores da tabela de 8.4, com a quantidade e o tipo de argumentos indicados. |
+| **R16** | Em `{ $v \| f1 \| f2 }`, a saída de `f1` precisa ser do tipo que `f2` espera. |
+| **R17** | As categorias plurais não são validadas por idioma (por exemplo, `few` é aceito mesmo em português). |
 
-**Locais e Organizações**
+### 7.2 Tipos das variáveis
 
-* **Masmorra (Dungeon):** Complexo subterrâneo, cripta ou ruína infestada por monstros, armadilhas e tesouros.
-* **Santuário:** Local sagrado canalizador de bênçãos, curas ou pactos com divindades e patronos.
-* **Guilda:** Associação de aventureiros ou artesãos que distribui missões (*quests*), recursos e contratos.
+O tipo de uma variável é **inferido** pelos seus usos; a linguagem não tem
+declarações.
 
-**Mecânicas de Combate e Papéis**
+| Uso | Tipo da variável |
+| --- | --- |
+| Seleção com categorias plurais (`[one]`, `[zero]`, `[other]`...) | número |
+| Marcador `#` em uma seleção | número |
+| Entrada de `moeda` ou `arredondar` | número |
+| Seleção com chaves de gênero/papel (`[masculino]`, `[fem]`...) | texto |
+| Entrada de `maiusculo` ou `minusculo` | texto |
+| `{ $x }` sem formatador; seleção só com `[*]` | nenhum (neutro) |
 
-* **Aggro (Ameaça):** Nível de hostilidade que faz um monstro focar seus ataques em um jogador específico.
-* **Tank (Tanque):** Classe focada em absorver dano de grande porte e manter o *aggro* dos inimigos longe dos aliados.
-* **DPS (Dano por Segundo):** Papel focado em causar a maior quantidade de dano possível no menor tempo.
-* **Healer (Curandeiro):** Personagem focado em suporte, purificação de maldições e restauração de pontos de vida (HP).
-* **Buff / Debuff:** Efeito temporário que melhora (*buff*) ou enfraquece (*debuff*) os atributos de um personagem.
-* **Cooldown (Recarga):** Intervalo de tempo necessário até que uma habilidade possa ser usada novamente.
-* **Loot (Saque):** Recompensas, itens e moedas obtidos ao derrotar inimigos ou abrir baús.
+Se a mesma variável for usada com os dois tipos, o erro aponta para o **segundo**
+uso e cita a linha do primeiro:
 
-**Atributos de Personagem**
+```locascript
+{ $x | moeda(BRL) }
+{ $x | maiusculo }
+```
 
-* **Força (FOR):** Poder físico brutal, bônus de dano corpo a corpo e capacidade de carga.
-* **Destreza (DES):** Agilidade, precisão com armas à distância, reflexos e taxa de esquiva.
-* **Inteligência (INT):** Capacidade de raciocínio e potência para magias de origem arcana.
-* **Sabedoria (SAB):** Intuição, percepção do ambiente e eficácia para magias de origem divina ou de cura.
-* **Carisma (CAR):** Força de personalidade, persuasão e facilidade de negociação com NPCs.
+```
+linha 2, coluna 7: $x é usada como texto (formatador 'maiusculo'), mas na linha 1
+foi usada como número (formatador 'moeda')
+```
+
+### 7.3 Tags de UI
+
+- Abertura e fechamento são sempre explícitos e aninhados:
+  `<b><i>x</i></b>` é válido; `<b><i>x</b></i>` é erro (um erro para cada
+  fechamento fora de ordem).
+- `color` é a única tag com valor verificado: o valor é obrigatório e tem a
+  forma `#` seguido de exatamente 6 dígitos hexadecimais, maiúsculos ou
+  minúsculos (`<color=#FF0000>`). Nomes de cor (`yellow`) e formas abreviadas
+  (`#FFF`) são erros.
+- As demais tags (`bold`, `italic`, qualquer outro nome) e seus valores não são
+  verificados; quem interpreta a tag é o sistema hospedeiro.
+
+### 7.4 Formatadores
+
+| Formatador | Argumentos | Entrada | Saída |
+| --- | --- | --- | --- |
+| `moeda` | 1 ou 2: código de 3 letras maiúsculas (`BRL`) e, opcional, casas decimais (inteiro de 0 a 10) | número | texto |
+| `arredondar` | 1: casas decimais (inteiro de 0 a 10) | número | número |
+| `maiusculo` | nenhum | texto | texto |
+| `minusculo` | nenhum | texto | texto |
+
+Exemplos:
+
+```locascript
+{ $preco | arredondar(2) | moeda(BRL) }     ## válido: número -> número -> texto
+{ $preco | moeda(BRL) | arredondar(2) }     ## erro: arredondar espera número, recebe texto
+{ $nome | moeda(BRL) }                      ## erro se $nome é usada como texto em outro ponto
+{ $preco | moeda(brl) }                     ## erro: o código deve ter 3 letras maiúsculas
+```
+
+### 7.5 Exemplos de erro
+
+```locascript
+{ $genero -> [fem] # [one] x }              ## R1 e R5: sem [*] e mistura de chaves
+<color=yellow>{ $nome }</color>             ## R9: color exige #RRGGBB
+<b><i>texto</b></i>                         ## R2: fechamento fora de ordem
+```
+
+## 8. Execução (renderização)
+
+O interpretador recebe uma mensagem **já validada** (seções 7 e 8), um conjunto
+de **valores** para as variáveis e um **idioma**, e produz o texto final. A
+saída é uma lista de **trechos** (texto mais as tags de UI ativas naquele
+ponto) e uma lista de **avisos**. Problemas de execução nunca interrompem a
+renderização: viram avisos.
+
+### 8.1 Entradas
+
+- **Valores:** cada variável recebe um texto, um número ou nada. Valores
+  booleanos e estruturas (listas, objetos) não são aceitos.
+- **Idioma:** um código como `pt`, `pt-BR`, `pt_PT`, `en` ou `ru`. Ele decide as
+  categorias plurais e o formato dos números. `pt` equivale a `pt_BR`. Um código
+  desconhecido é um erro (a renderização não começa).
+- Um valor numérico pode vir como número ou como texto numérico (`"5"`).
+  O valor absoluto não pode passar de 10^15.
+
+### 8.2 Seleção por pluralização
+
+Para uma seleção com categorias plurais, o ramo é escolhido nesta ordem:
+
+1. Se o valor é exatamente 0 e existe `[zero]`, usa `[zero]`.
+2. Senão, calcula a categoria plural do valor no idioma (CLDR) e usa o ramo
+   com essa chave, se existir.
+3. Senão, usa `[*]`.
+
+O passo 1 existe porque a categoria `zero` do CLDR só existe em alguns idiomas
+(como o árabe); em português, por exemplo, o CLDR classifica o 0 como `one`
+(`pt_BR`) ou `other` (`pt_PT`). Com a regra, `[zero]` funciona em qualquer
+idioma. O passo 2 segue o CLDR: `1,5` e `1.0` podem cair em categorias
+diferentes de `1`.
+
+| Valor | `pt_BR` | `pt_PT` | `en` | `ru` |
+| --- | --- | --- | --- | --- |
+| 0 | one | other | other | many |
+| 1 | one | one | one | one |
+| 2 | other | other | other | few |
+| 5 | other | other | other | many |
+| 21 | other | other | other | one |
+
+O marcador `#` é substituído pelo valor da seleção **mais interna** que o
+contém, formatado segundo o idioma (`1.234,5` em `pt`, `1,234.5` em `en`). Sem
+`arredondar`, números mostram até 3 casas decimais.
+
+### 8.3 Seleção por gênero ou papel
+
+O valor, que deve ser texto, é comparado com as chaves, **diferenciando
+maiúsculas de minúsculas**: `[fem]` casa com `"fem"` e não com `"FEM"`. Sem
+correspondência, usa `[*]`.
+
+### 8.4 Formatadores
+
+| Formatador | Resultado |
+| --- | --- |
+| `moeda(BRL)` | Valor com o símbolo e as casas da moeda, no formato do idioma: `R$ 1.234,50` em `pt`, `R$1,234.50` em `en`. `moeda(JPY)` não tem casas. |
+| `moeda(BRL, n)` | Igual, com `n` casas decimais. |
+| `arredondar(n)` | Arredonda para `n` casas, **metade para cima** (2,5 vira 3), e fixa as casas: `arredondar(2)` mostra `3,10` para 3,1. |
+| `maiusculo`, `minusculo` | Converte o texto. |
+
+Em uma cadeia, cada formatador recebe a saída do anterior.
+Exemplo: `{ $v | arredondar(1) | moeda(BRL) }` com 1,26 produz `R$ 1,30`.
+
+### 8.5 Tags de UI
+
+As tags não aparecem no texto: cada trecho carrega a lista de tags ativas
+(`color=#FF0000`, `b`...). Um ramo de seleção herda as tags abertas em volta
+da seleção, e as tags abertas dentro de um ramo terminam com ele.
+
+```locascript
+<color=#FF0000>{ $nome }</color> venceu
+```
+
+Com `nome = "Aria"`, os trechos são `Aria` (com `color=#FF0000`) e ` venceu` (sem tags).
+
+### 8.6 Avisos
+
+| Situação | Resultado |
+| --- | --- |
+| Variável sem valor (ou `null`) | Marcador `{$nome}`, destacado como ausente, e aviso |
+| Valor de tipo inválido (booleano, estrutura) | Igual ao caso anterior |
+| Valor não numérico em seleção de pluralização | Usa `[*]` e avisa |
+| Valor não numérico em `moeda` ou `arredondar` | Marcador `{$nome}` e aviso |
+| Seleção de gênero sem valor, ou com valor que não é texto | Usa `[*]` e avisa |
+| `#` sem valor numérico | `#` destacado como ausente e aviso |
+| Número fora do limite (9.1) | Tratado como valor não numérico |
+
+### 8.7 Fora do escopo
+
+O interpretador não traduz entre idiomas: quem traduz é a pessoa que escreve
+cada arquivo. Ele só resolve, para um conjunto de valores, qual texto de um
+arquivo já escrito deve aparecer.

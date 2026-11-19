@@ -1,8 +1,8 @@
 
 <color=#FFFF00>{ $atacante_nome }</color> causou { $dano } de dano!
 { $vitima_genero ->
-    [fem] Ela perdeu
-    [*]   Ele perdeu
+    [fem] Ela usou
+    [*]   Ele usou
 } { $pocoes ->
     [one]  # poção de vida.
     [*]    # poções de vida.
