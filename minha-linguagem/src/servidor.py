@@ -1,26 +1,63 @@
 """Servidor HTTP do playground da LocaScript.
 
-Rodar (a partir da raiz do projeto):
-    python src/servidor.py
-    # ou: flask --app src/servidor run
+Local (a partir da raiz do projeto):
+    python src/servidor.py                       # http://127.0.0.1:5000  (FLASK_DEBUG=1 liga o modo debug)
 
-Endpoints:
-    POST /analisar    {"texto": "..."}                                  -> resultado de processar()
-    POST /renderizar  {"texto": "...", "valores": {...}, "idioma": "pt"} -> mensagem renderizada
+Produção (o Dockerfile faz isto):
+    gunicorn --chdir src servidor:app
+
+Rotas:
+    GET  /            página do playground (static/index.html)
+    GET  /saude       verificação de saúde para o host
+    POST /analisar    {"texto": "..."}                                   -> resultado de processar()
+    POST /renderizar  {"texto": "...", "valores": {...}, "idioma": "pt"}  -> mensagem renderizada
 """
 from __future__ import annotations
 
-from flask import Flask, jsonify, request
+import os
+from pathlib import Path
+
+from flask import Flask, jsonify, request, send_from_directory
 
 from interpretador import ErroDeIdioma, renderizar, validar_idioma
 from processar import processar, processar_com_arvore
 
+RAIZ = Path(__file__).resolve().parent.parent
+PASTA_ESTATICA = RAIZ / "static"
+
 TAMANHO_MAXIMO_BYTES = 50_000
+TAMANHO_MAXIMO_CORPO = 256_000   # o JSON inclui valores, idioma e escapes
 MAXIMO_VARIAVEIS = 200
 TAMANHO_MAXIMO_VALOR = 2_000
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder=str(PASTA_ESTATICA), static_url_path="/static")
 app.json.ensure_ascii = False  # acentos e emojis legíveis no JSON
+app.config["MAX_CONTENT_LENGTH"] = TAMANHO_MAXIMO_CORPO
+
+# A página usa script e estilo inline e só fala com o próprio servidor.
+_CSP = (
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; "
+    "style-src 'self' 'unsafe-inline'; connect-src 'self'; "
+    "base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+)
+
+
+@app.after_request
+def _cabecalhos_de_seguranca(resposta):
+    resposta.headers.setdefault("Content-Security-Policy", _CSP)
+    resposta.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resposta.headers.setdefault("Referrer-Policy", "no-referrer")
+    return resposta
+
+
+@app.get("/")
+def pagina_inicial():
+    return send_from_directory(PASTA_ESTATICA, "index.html")
+
+
+@app.get("/saude")
+def saude():
+    return jsonify(status="ok")
 
 
 @app.post("/analisar")
@@ -89,4 +126,8 @@ def renderizar_endpoint():
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    app.run(
+        host="127.0.0.1",
+        port=int(os.environ.get("PORT", "5000")),
+        debug=os.environ.get("FLASK_DEBUG") == "1",
+    )

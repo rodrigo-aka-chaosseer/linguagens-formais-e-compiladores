@@ -1,0 +1,11 @@
+# Blueprint do Render. Este arquivo fica na RAIZ do repositório (não dentro de
+# minha-linguagem/). dockerfilePath e dockerContext são relativos ao rootDir.
+services:
+  - type: web
+    name: locascript-playground
+    runtime: docker
+    plan: free
+    rootDir: minha-linguagem
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /saude

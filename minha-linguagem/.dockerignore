@@ -1,0 +1,10 @@
+.venv/
+gerado/
+__pycache__/
+*.pyc
+.pytest_cache/
+.hypothesis/
+tests/
+exemplos/
+docs/
+DIARIO.md

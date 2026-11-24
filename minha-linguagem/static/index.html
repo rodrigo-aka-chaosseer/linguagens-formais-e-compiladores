@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Playground LocaScript</title>
+<style>
+  :root {
+    --fundo: #f6f6f4; --superficie: #ffffff; --texto: #1f1f1d; --suave: #5f5e5a;
+    --borda: #d3d1c7; --destaque: #185fa5; --ok-fundo: #eaf3de; --ok-texto: #3b6d11;
+    --erro-fundo: #fcebeb; --erro-texto: #a32d2d; --aviso-fundo: #faeeda; --aviso-texto: #854f0b;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fundo: #1c1c1a; --superficie: #262624; --texto: #ececea; --suave: #a8a69d;
+      --borda: #44443f; --destaque: #85b7eb; --ok-fundo: #27500a; --ok-texto: #c0dd97;
+      --erro-fundo: #501313; --erro-texto: #f7c1c1; --aviso-fundo: #412402; --aviso-texto: #fac775;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fundo); color: var(--texto);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center;
+           justify-content: space-between; padding: 12px 20px; background: var(--superficie);
+           border-bottom: 1px solid var(--borda); }
+  h1 { margin: 0; font-size: 18px; font-weight: 600; }
+  h2 { margin: 18px 0 8px; font-size: 14px; font-weight: 600; }
+  h3 { margin: 14px 0 6px; font-size: 13px; font-weight: 600; color: var(--suave); }
+  .controles { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  label { font-size: 13px; color: var(--suave); }
+  select, input[type="text"], textarea, button {
+    font: inherit; color: var(--texto); background: var(--superficie);
+    border: 1px solid var(--borda); border-radius: 6px; }
+  select, input[type="text"] { padding: 4px 8px; }
+  button { padding: 3px 9px; cursor: pointer; }
+  button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible
+    { outline: 2px solid var(--destaque); outline-offset: 1px; }
+  #status { font-size: 13px; padding: 2px 10px; border-radius: 4px; background: var(--fundo); }
+  #status.ok { background: var(--ok-fundo); color: var(--ok-texto); }
+  #status.erro { background: var(--erro-fundo); color: var(--erro-texto); }
+  main { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 24px; padding: 0 20px 32px; }
+  @media (min-width: 860px) { main { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); } }
+  textarea { width: 100%; min-height: 280px; padding: 10px 12px; font-family: var(--mono); font-size: 14px;
+             line-height: 1.6; resize: vertical; white-space: pre; overflow: auto; tab-size: 4; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  .diag { display: flex; gap: 8px; align-items: baseline; width: 100%; text-align: left;
+          border: 0; border-bottom: 1px solid var(--borda); border-radius: 0; background: transparent; padding: 6px 2px; }
+  .diag:hover { background: var(--superficie); }
+  .fase { flex: none; font-size: 12px; padding: 0 6px; border-radius: 4px;
+          background: var(--aviso-fundo); color: var(--aviso-texto); }
+  .fase.lexico, .fase.sintatico, .fase.interno { background: var(--erro-fundo); color: var(--erro-texto); }
+  .pos { flex: none; font-size: 12px; color: var(--suave); font-family: var(--mono); }
+  .vazio { color: var(--suave); font-size: 13px; padding: 4px 2px; }
+  .variavel { display: grid; grid-template-columns: minmax(90px, 140px) minmax(0, 1fr) auto; gap: 8px;
+              align-items: center; margin-bottom: 6px; }
+  .variavel code { font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }
+  .variavel .tipo { font-size: 11px; color: var(--suave); display: block; }
+  .rapidos { display: flex; gap: 4px; }
+  #previa { background: var(--superficie); border: 1px solid var(--borda); border-radius: 8px;
+            padding: 12px 14px; font-size: 17px; line-height: 1.6; white-space: pre-wrap; min-height: 3.2em;
+            overflow-wrap: anywhere; }
+  #previa .ausente { background: var(--aviso-fundo); color: var(--aviso-texto);
+                     text-decoration: underline dashed; border-radius: 3px; }
+  #avisos li { font-size: 13px; color: var(--aviso-texto); padding: 2px 0; }
+  details { margin-top: 18px; }
+  summary { cursor: pointer; font-size: 14px; font-weight: 600; }
+  .rolavel { max-height: 260px; overflow: auto; border: 1px solid var(--borda); border-radius: 6px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; font-family: var(--mono); }
+  th, td { text-align: left; padding: 3px 8px; border-bottom: 1px solid var(--borda); white-space: pre; }
+  th { position: sticky; top: 0; background: var(--superficie); font-weight: 600; }
+  tr.oculto td { color: var(--suave); }
+  pre { max-height: 320px; overflow: auto; margin: 0; padding: 8px 10px; font-size: 12px;
+        background: var(--superficie); border: 1px solid var(--borda); border-radius: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Playground LocaScript</h1>
+  <div class="controles">
+    <label>Exemplo <select id="exemplos"></select></label>
+    <label>Idioma
+      <select id="idioma">
+        <option value="pt">Português (pt)</option>
+        <option value="pt_PT">Português (pt_PT)</option>
+        <option value="en">English (en)</option>
+        <option value="es">Español (es)</option>
+        <option value="ru">Русский (ru)</option>
+        <option value="ar">العربية (ar)</option>
+      </select>
+    </label>
+    <span id="status" role="status" aria-live="polite">Carregando…</span>
+  </div>
+</header>
+
+<noscript><p style="padding: 20px">Este playground precisa de JavaScript.</p></noscript>
+
+<main>
+  <section aria-labelledby="titulo-mensagem">
+    <h2 id="titulo-mensagem">Mensagem</h2>
+    <textarea id="texto" wrap="off" spellcheck="false" autocomplete="off" autocapitalize="off"
+              aria-label="Texto da mensagem em LocaScript"></textarea>
+    <h2>Diagnósticos</h2>
+    <ul id="diagnosticos"></ul>
+  </section>
+
+  <section aria-labelledby="titulo-variaveis">
+    <h2 id="titulo-variaveis">Variáveis</h2>
+    <div id="variaveis"></div>
+
+    <h2>Prévia</h2>
+    <div id="previa" dir="auto" aria-live="polite"></div>
+    <ul id="avisos"></ul>
+
+    <details id="tecnico">
+      <summary>Tokens e árvore (AST)</summary>
+      <h3>Tokens</h3>
+      <div class="rolavel">
+        <table>
+          <thead><tr><th>Posição</th><th>Tipo</th><th>Texto</th></tr></thead>
+          <tbody id="tokens"></tbody>
+        </table>
+      </div>
+      <h3>AST</h3>
+      <pre id="ast"></pre>
+    </details>
+  </section>
+</main>
+
+<script>
+"use strict";
+
+// Exemplos usam a sintaxe atual (fechamento de tag explícito; color com #RRGGBB).
+const EXEMPLOS = [
+  {
+    nome: "Dano em combate",
+    idioma: "pt",
+    valores: { atacante_nome: "Aria", dano: "12", vitima_genero: "fem", pocoes: "3" },
+    texto:
+`<color=#E24B4A>{ $atacante_nome }</color> causou { $dano } de dano!
+{ $vitima_genero ->
+    [fem] Ela perdeu
+    [*]   Ele perdeu
+} { $pocoes ->
+    [one]  # poção de vida.
+    [*]    # poções de vida.
+}`,
+  },
+  {
+    nome: "Moedas (pluralização)",
+    idioma: "pt",
+    valores: { quantidade: "5" },
+    texto:
+`Você encontrou { $quantidade ->
+    [zero]  nenhuma moeda.
+    [one]   1 moeda de ouro.
+    [*]     # moedas de ouro.
+}`,
+  },
+  {
+    nome: "Preço com formatadores",
+    idioma: "pt",
+    valores: { valor: "1234,5" },
+    texto: "Custa { $valor | moeda(BRL) } (arredondado: { $valor | arredondar(0) }).",
+  },
+  {
+    nome: "Boas-vindas",
+    idioma: "pt",
+    valores: { nome: "Aria" },
+    texto: "Olá, { $nome | maiusculo }! Bem-vindo(a) ao jogo.",
+  },
+  {
+    nome: "Com erro semântico",
+    idioma: "pt",
+    valores: { n: "1" },
+    texto: "{ $n -> [one] # moeda }\n<color=yellow>cor inválida</color>",
+  },
+];
+
+const RAPIDOS = ["0", "1", "2", "5"];
+const $ = (id) => document.getElementById(id);
+const estado = { valores: {}, tipos: {}, assinatura: "", nomes: [], sequencia: 0, controlador: null, temporizador: null };
+
+// ---------- comunicação com o servidor ----------
+async function chamar(rota, corpo, sinal) {
+  const resposta = await fetch(rota, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(corpo),
+    signal: sinal,
+  });
+  let dados = null;
+  try { dados = await resposta.json(); } catch (_) { /* corpo vazio ou inválido */ }
+  return { ok: resposta.ok, status: resposta.status, dados };
+}
+
+function valoresParaEnvio(tipos) {
+  const saida = {};
+  for (const nome of Object.keys(estado.valores)) {
+    const bruto = estado.valores[nome];
+    if (bruto === undefined || bruto === "") continue;           // vazio = não informado
+    if (tipos[nome] === "numero") {
+      const limpo = bruto.trim().replace(",", ".");
+      saida[nome] = /^-?\d+(\.\d+)?$/.test(limpo) ? Number(limpo) : bruto;  // texto inválido: o servidor avisa
+    } else {
+      saida[nome] = bruto;
+    }
+  }
+  return saida;
+}
+
+async function atualizar() {
+  const sequencia = ++estado.sequencia;
+  if (estado.controlador) estado.controlador.abort();
+  const controlador = (estado.controlador = new AbortController());
+  const texto = $("texto").value;
+  const tiposUsados = JSON.stringify(estado.tipos);
+  mostrarStatus("Analisando…", "");
+  try {
+    const resposta = await chamar("/renderizar", {
+      texto, valores: valoresParaEnvio(estado.tipos), idioma: $("idioma").value,
+    }, controlador.signal);
+    if (sequencia !== estado.sequencia) return;
+    if (!resposta.ok) { mostrarFalhaDoServidor(resposta); return; }
+    desenhar(resposta.dados);
+    if ($("tecnico").open) await atualizarTecnico(texto, sequencia, controlador.signal);
+    if (JSON.stringify(estado.tipos) !== tiposUsados) atualizar();   // tipos novos: reenvia com os valores certos
+  } catch (erro) {
+    if (erro && erro.name === "AbortError") return;
+    if (sequencia === estado.sequencia) mostrarStatus("Sem conexão com o servidor", "erro");
+  }
+}
+
+async function atualizarTecnico(texto, sequencia, sinal) {
+  const resposta = await chamar("/analisar", { texto }, sinal);
+  if (sequencia !== estado.sequencia || !resposta.ok) return;
+  const { tokens, ast } = resposta.dados;
+  const corpo = $("tokens");
+  corpo.replaceChildren();
+  for (const t of tokens.slice(0, 500)) {
+    const linha = document.createElement("tr");
+    if (t.oculto) linha.className = "oculto";
+    for (const celula of [`${t.linha}:${t.coluna}`, t.tipo, JSON.stringify(t.texto)]) {
+      const td = document.createElement("td");
+      td.textContent = celula;
+      linha.appendChild(td);
+    }
+    corpo.appendChild(linha);
+  }
+  if (tokens.length > 500) {
+    const aviso = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 3;
+    td.textContent = `… mais ${tokens.length - 500} tokens`;
+    aviso.appendChild(td);
+    corpo.appendChild(aviso);
+  }
+  $("ast").textContent = ast
+    ? JSON.stringify(ast, null, 2).slice(0, 200000)
+    : "(sem AST: há erro léxico ou sintático)";
+}
+
+function mostrarFalhaDoServidor(resposta) {
+  const mensagem = (resposta.dados && resposta.dados.erro) || `erro ${resposta.status}`;
+  mostrarStatus(mensagem, "erro");
+}
+
+// ---------- desenho do resultado ----------
+function mostrarStatus(texto, classe) {
+  const el = $("status");
+  el.textContent = texto;
+  el.className = classe || "";
+}
+
+function desenhar(dados) {
+  desenharDiagnosticos(dados.diagnosticos);
+  desenharFormulario(dados.variaveis);
+  desenharPrevia(dados);
+  const n = dados.diagnosticos.length;
+  if (n === 0) {
+    const avisos = dados.avisos.length;
+    mostrarStatus(avisos ? `Sem erros · ${avisos} aviso(s)` : "Sem erros", "ok");
+  } else {
+    mostrarStatus(`${n} problema(s)`, "erro");
+  }
+}
+
+function desenharDiagnosticos(lista) {
+  const ul = $("diagnosticos");
+  ul.replaceChildren();
+  if (lista.length === 0) {
+    const li = document.createElement("li");
+    li.className = "vazio";
+    li.textContent = "Nenhum problema encontrado.";
+    ul.appendChild(li);
+    return;
+  }
+  for (const d of lista) {
+    const li = document.createElement("li");
+    const botao = document.createElement("button");
+    botao.type = "button";
+    botao.className = "diag";
+    botao.title = "Ir para a posição no texto";
+    const fase = document.createElement("span");
+    fase.className = `fase ${d.fase}`;
+    fase.textContent = d.fase;
+    const pos = document.createElement("span");
+    pos.className = "pos";
+    pos.textContent = `${d.linha}:${d.coluna}`;
+    const msg = document.createElement("span");
+    msg.textContent = d.mensagem;
+    botao.append(fase, pos, msg);
+    botao.addEventListener("click", () => selecionarNoTexto(d.linha, d.coluna, d.comprimento));
+    li.appendChild(botao);
+    ul.appendChild(li);
+  }
+}
+
+function desenharFormulario(variaveis) {
+  const assinatura = variaveis.map((v) => `${v.nome}:${v.tipo}`).join("|");
+  estado.nomes = variaveis.map((v) => v.nome);
+  estado.tipos = Object.fromEntries(variaveis.map((v) => [v.nome, v.tipo]));
+  if (assinatura === estado.assinatura) return;          // não recria os campos enquanto você digita
+  estado.assinatura = assinatura;
+
+  const area = $("variaveis");
+  area.replaceChildren();
+  if (variaveis.length === 0) {
+    const p = document.createElement("p");
+    p.className = "vazio";
+    p.textContent = "Esta mensagem não usa variáveis.";
+    area.appendChild(p);
+    return;
+  }
+  for (const v of variaveis) {
+    const linha = document.createElement("div");
+    linha.className = "variavel";
+
+    const rotulo = document.createElement("label");
+    rotulo.htmlFor = `v-${v.nome}`;
+    const codigo = document.createElement("code");
+    codigo.textContent = `$${v.nome}`;
+    const tipo = document.createElement("span");
+    tipo.className = "tipo";
+    tipo.textContent = v.tipo === "numero" ? "número" : v.tipo === "texto" ? "texto" : "livre";
+    rotulo.append(codigo, tipo);
+
+    const campo = document.createElement("input");
+    campo.type = "text";
+    campo.id = `v-${v.nome}`;
+    campo.autocomplete = "off";
+    if (v.tipo === "numero") campo.inputMode = "decimal";
+    campo.value = estado.valores[v.nome] ?? "";
+    campo.addEventListener("input", () => { estado.valores[v.nome] = campo.value; agendar(); });
+
+    const rapidos = document.createElement("div");
+    rapidos.className = "rapidos";
+    if (v.tipo === "numero") {
+      for (const r of RAPIDOS) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = r;
+        b.addEventListener("click", () => { campo.value = r; estado.valores[v.nome] = r; atualizar(); });
+        rapidos.appendChild(b);
+      }
+    }
+    linha.append(rotulo, campo, rapidos);
+    area.appendChild(linha);
+  }
+}
+
+function desenharPrevia(dados) {
+  const previa = $("previa");
+  const avisos = $("avisos");
+  previa.replaceChildren();
+  avisos.replaceChildren();
+  if (!dados.ok) {
+    const p = document.createElement("span");
+    p.className = "vazio";
+    p.textContent = "Corrija os problemas para ver a prévia.";
+    previa.appendChild(p);
+    return;
+  }
+  for (const trecho of dados.trechos) previa.appendChild(elementoDoTrecho(trecho));
+  for (const a of dados.avisos) {
+    const li = document.createElement("li");
+    li.textContent = `${a.linha}:${a.coluna} ${a.mensagem}`;
+    avisos.appendChild(li);
+  }
+}
+
+// Só estas tags têm efeito visual; valores nunca vão para HTML, só para propriedades de estilo validadas.
+function elementoDoTrecho(trecho) {
+  const span = document.createElement("span");
+  span.textContent = trecho.texto;
+  if (trecho.ausente) span.className = "ausente";
+  for (const { tag, valor } of trecho.estilo) {
+    if (tag === "color" && /^#[0-9A-Fa-f]{6}$/.test(valor || "")) span.style.color = valor;
+    else if (tag === "b" || tag === "bold") span.style.fontWeight = "700";
+    else if (tag === "i" || tag === "italic") span.style.fontStyle = "italic";
+    else if (tag === "u" || tag === "underline") span.style.textDecoration = "underline";
+  }
+  if (trecho.estilo.length) {
+    span.title = trecho.estilo.map((e) => (e.valor ? `${e.tag}=${e.valor}` : e.tag)).join(", ");
+  }
+  return span;
+}
+
+// ---------- posição no texto (colunas do servidor contam pontos de código, o JS conta UTF-16) ----------
+function avancar(texto, inicio, pontos) {
+  let i = inicio;
+  for (let n = 0; n < pontos && i < texto.length && texto[i] !== "\n"; n++) {
+    i += texto.codePointAt(i) > 0xffff ? 2 : 1;
+  }
+  return i;
+}
+
+function selecionarNoTexto(linha, coluna, comprimento) {
+  const campo = $("texto");
+  const texto = campo.value;
+  let inicioDaLinha = 0;
+  for (let l = 1; l < linha; l++) {
+    const proxima = texto.indexOf("\n", inicioDaLinha);
+    if (proxima === -1) { inicioDaLinha = texto.length; break; }
+    inicioDaLinha = proxima + 1;
+  }
+  const a = avancar(texto, inicioDaLinha, coluna);
+  const b = Math.max(avancar(texto, a, comprimento || 1), a);
+  campo.focus();
+  campo.setSelectionRange(a, b);
+}
+
+// ---------- eventos ----------
+function agendar() {
+  clearTimeout(estado.temporizador);
+  estado.temporizador = setTimeout(atualizar, 300);
+}
+
+function carregarExemplo(exemplo) {
+  $("texto").value = exemplo.texto;
+  $("idioma").value = exemplo.idioma;
+  estado.valores = { ...exemplo.valores };
+  estado.assinatura = "";            // força recriar o formulário
+  atualizar();
+}
+
+function iniciar() {
+  const seletor = $("exemplos");
+  EXEMPLOS.forEach((e, i) => {
+    const op = document.createElement("option");
+    op.value = String(i);
+    op.textContent = e.nome;
+    seletor.appendChild(op);
+  });
+  seletor.addEventListener("change", () => carregarExemplo(EXEMPLOS[Number(seletor.value)]));
+  $("texto").addEventListener("input", agendar);
+  $("idioma").addEventListener("change", atualizar);
+  $("tecnico").addEventListener("toggle", () => { if ($("tecnico").open) atualizar(); });
+  carregarExemplo(EXEMPLOS[0]);
+}
+
+iniciar();
+</script>
+</body>
+</html>
